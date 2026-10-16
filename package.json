@@ -1,0 +1,42 @@
+{
+  "name": "dsh-session-toolkit",
+  "version": "0.1.0",
+  "description": "Session-lifecycle toolkit for DeepSeek Harness: handoff fact collection, model-facing session tails, and cross-machine session landing. Zero runtime dependencies.",
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "sessions",
+    "session-relay",
+    "handoff",
+    "session-archive",
+    "toolkit"
+  ],
+  "type": "module",
+  "exports": {
+    "./relay-facts": "./src/relay-facts.mjs",
+    "./session-tail-for-llm": "./src/session-tail-for-llm.mjs",
+    "./dsh-sessions-land": "./src/dsh-sessions-land.mjs",
+    "./lib/dsh-home": "./src/lib/dsh-home.mjs",
+    "./lib/session-file-name": "./src/lib/session-file-name.mjs",
+    "./lib/sessions-land-skip": "./src/lib/sessions-land-skip.mjs",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "dsh-session-tail": "src/session-tail-for-llm.mjs",
+    "dsh-sessions-land": "src/dsh-sessions-land.mjs"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "README.en.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "check": "node --check src/relay-facts.mjs && node --check src/session-tail-for-llm.mjs && node --check src/dsh-sessions-land.mjs && node --check src/lib/dsh-home.mjs && node --check src/lib/session-file-name.mjs && node --check src/lib/sessions-land-skip.mjs"
+  },
+  "license": "AGPL-3.0-only"
+}

@@ -1,0 +1,20 @@
+# 临时 / 本地文件
+.tmp-*/
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# 依赖与构建产物（本仓库零依赖、无构建步骤，理论上不该出现）
+node_modules/
+package-lock.json
+pnpm-lock.yaml
+*.tgz
+
+# 本机运行产物（工具会把状态文件写到这里，别提交）
+.tmp-state-*/
+
+# 私有侧留档：脱敏清单 / 复核报告 / 发布记录底稿一律不进公开仓
+*-sanitize-report.md
+复核报告-*.md
+脱敏清单*.md
