@@ -89,9 +89,16 @@
 
 ## 三、安装
 
-**本仓不发 npm**，克隆即用（零依赖，无需 install）：
+包已发布到 npm：**`@kira905/dsh-session-toolkit`**（零依赖）。两种方式：
 
 ```bash
+# 方式 A（推荐）：npm —— 装完可直接用命令行入口
+#   dsh-session-tail / dsh-sessions-land / dsh-context-check / dsh-session-axis-set / dsh-archive-inactive
+npm install -g @kira905/dsh-session-toolkit
+# 当库用则本地装：npm install @kira905/dsh-session-toolkit
+#   然后 import '@kira905/dsh-session-toolkit/context-check' 等子路径
+
+# 方式 B：git 克隆（要读源码 / 离线）
 git clone https://gitee.com/kira905/dsh-session-toolkit.git
 # 或 https://github.com/kira905/dsh-session-toolkit.git
 cd dsh-session-toolkit

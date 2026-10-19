@@ -98,9 +98,16 @@ conventions and formats line up.
 
 ## 3. Install
 
-**Not published to npm.** Clone and run — there is nothing to install:
+The package is published on npm as **`@kira905/dsh-session-toolkit`** (zero dependencies). Two routes:
 
 ```bash
+# Route A (recommended): npm — installs the command-line entries
+#   dsh-session-tail / dsh-sessions-land / dsh-context-check / dsh-session-axis-set / dsh-archive-inactive
+npm install -g @kira905/dsh-session-toolkit
+# Used as a library? Install it locally: npm install @kira905/dsh-session-toolkit
+#   then import '@kira905/dsh-session-toolkit/context-check' and the other subpaths
+
+# Route B: clone from git (reading the source / offline)
 git clone https://gitee.com/kira905/dsh-session-toolkit.git
 # or https://github.com/kira905/dsh-session-toolkit.git
 cd dsh-session-toolkit

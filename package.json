@@ -1,5 +1,5 @@
 {
-  "name": "dsh-session-toolkit",
+  "name": "@kira905/dsh-session-toolkit",
   "version": "0.1.1",
   "description": "Session-lifecycle toolkit for DeepSeek Harness: handoff fact collection, model-facing session tails, cross-machine session landing, context pressure check, session axis marks, and inactive-session archiving. Zero runtime dependencies.",
   "keywords": [
@@ -10,7 +10,8 @@
     "handoff",
     "session-archive",
     "session-context",
-    "toolkit"
+    "toolkit",
+    "dsh-plugin"
   ],
   "type": "module",
   "exports": {
@@ -49,5 +50,16 @@
   "scripts": {
     "check": "node --check src/relay-facts.mjs && node --check src/session-tail-for-llm.mjs && node --check src/dsh-sessions-land.mjs && node --check src/context-check.mjs && node --check src/session-axis-set.mjs && node --check src/archive-inactive-sessions.mjs && node --check src/lib/dsh-home.mjs && node --check src/lib/session-file-name.mjs && node --check src/lib/sessions-land-skip.mjs && node --check src/lib/dsh-rpc-client.mjs && node --check src/lib/archive-meta-store.mjs && node --check src/lib/projcache-read.mjs && node --check src/lib/zstd-frames.mjs"
   },
-  "license": "AGPL-3.0-only"
+  "license": "AGPL-3.0-only",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kira905/dsh-session-toolkit.git"
+  },
+  "homepage": "https://github.com/kira905/dsh-session-toolkit#readme",
+  "bugs": {
+    "url": "https://github.com/kira905/dsh-session-toolkit/issues"
+  }
 }
