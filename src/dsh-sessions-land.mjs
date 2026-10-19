@@ -33,11 +33,11 @@
 //
 // 2026-09-17（看板卡 A2 · D4）：新增「上次成功且仓2 HEAD 未变则跳过」判据
 //   （2026-09-12 方案 docs\接机会话落地A5-方案-20260912.md §8-D4 拍板采纳、当时未做）。
-//   判据本身是**纯函数**（tools/lib/sessions-land-skip.mjs，可单测可核对）；本文件只负责
+//   判据本身是**纯函数**（lib/sessions-land-skip.mjs，可单测可核对）；本文件只负责
 //   取输入（仓 HEAD / 本机会话数 / 上次状态）与落状态；任何判不出 ⇒ 不跳过（fail-safe）。
 //   --no-skip 强制不跳过；--state-file 注入状态文件（测试隔离用）。
 //
-// 2026-09-24（卡「三机同步步A-V3代际适配」）：会话日志名换代 —— 主包 0.1.5 起
+// 2026-09-24：会话日志名换代 —— 主包 0.1.5 起
 //   `session.jsonl.zstd` → `session.v3.jsonl.zstd`。本文件两处读取侧判据原来是**精确名比较** ⇒
 //   countLocalSessions() 恒 0（D4 跳过判据的本机会话数、dry-run 预览数字全错），
 //   probeRepoCipher() 也取不到样本（恒 'no-sample'）。
@@ -58,7 +58,7 @@ import {
   shouldSkipLanding, readSkipState, writeSkipState, makeSkipState,
   resolveSkipStatePath, DEFAULT_MAX_AGE_MS,
 } from './lib/sessions-land-skip.mjs';
-// 会话文件名判据真源（2026-09-24 卡「三机同步步A-V3代际适配」）——读取侧认全世代
+// 会话文件名判据真源（2026-09-24）——读取侧认全世代
 import { isSessionFileName, pickSessionFileInDir } from './lib/session-file-name.mjs';
 
 export const LAND_VERSION = '1.2.0';

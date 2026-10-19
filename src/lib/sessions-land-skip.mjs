@@ -1,4 +1,4 @@
-// DSH / tools/lib/sessions-land-skip.mjs —— A5 会话落地「跳过判据」（看板卡 A2 · D4）
+// sessions-land-skip.mjs —— 会话落地「跳过判据」（纯函数 + 状态文件原子读写）
 //
 // 来源：docs\接机会话落地A5-方案-20260912.md §8-D4
 //   「上次成功且仓2 HEAD 未变则跳过」（省掉一次 A5 全流程；实测收益 ≈7s，几乎全是 git pull 的网络往返）。

@@ -14,7 +14,7 @@
 //   · 事实档的**结构校验**与"要不要接力"的判定**都不在这里** —— 前者走 `session-relay.mjs`
 //     的 `validateHandoffDoc()`（同一份实现，不复制第二套），后者走 `runRelay()` 的闸门。
 //   · 主线名候选只**提出**、不裁决：`checkMainline()` / `normalizeMainline()` 的唯一实现在
-//     `tools/lib/mainline.mjs`（§4.2 K-5：闸门 2/3 与统计口径只走它一处）。
+//     `lib/mainline.mjs`（闸门 2/3 与统计口径只走它一处）。
 //   · 一切路径经 `opts.*` 注入 ⇒ 单测可完全隔离、不碰生产路径（卡测试口径：探针隔离）。
 import fs from 'node:fs';
 import os from 'node:os';

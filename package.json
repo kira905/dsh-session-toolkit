@@ -1,7 +1,7 @@
 {
   "name": "dsh-session-toolkit",
-  "version": "0.1.0",
-  "description": "Session-lifecycle toolkit for DeepSeek Harness: handoff fact collection, model-facing session tails, and cross-machine session landing. Zero runtime dependencies.",
+  "version": "0.1.1",
+  "description": "Session-lifecycle toolkit for DeepSeek Harness: handoff fact collection, model-facing session tails, cross-machine session landing, context pressure check, session axis marks, and inactive-session archiving. Zero runtime dependencies.",
   "keywords": [
     "dsh",
     "deepseek-harness",
@@ -9,6 +9,7 @@
     "session-relay",
     "handoff",
     "session-archive",
+    "session-context",
     "toolkit"
   ],
   "type": "module",
@@ -16,14 +17,24 @@
     "./relay-facts": "./src/relay-facts.mjs",
     "./session-tail-for-llm": "./src/session-tail-for-llm.mjs",
     "./dsh-sessions-land": "./src/dsh-sessions-land.mjs",
+    "./context-check": "./src/context-check.mjs",
+    "./session-axis-set": "./src/session-axis-set.mjs",
+    "./archive-inactive-sessions": "./src/archive-inactive-sessions.mjs",
     "./lib/dsh-home": "./src/lib/dsh-home.mjs",
     "./lib/session-file-name": "./src/lib/session-file-name.mjs",
     "./lib/sessions-land-skip": "./src/lib/sessions-land-skip.mjs",
+    "./lib/dsh-rpc-client": "./src/lib/dsh-rpc-client.mjs",
+    "./lib/archive-meta-store": "./src/lib/archive-meta-store.mjs",
+    "./lib/projcache-read": "./src/lib/projcache-read.mjs",
+    "./lib/zstd-frames": "./src/lib/zstd-frames.mjs",
     "./package.json": "./package.json"
   },
   "bin": {
     "dsh-session-tail": "src/session-tail-for-llm.mjs",
-    "dsh-sessions-land": "src/dsh-sessions-land.mjs"
+    "dsh-sessions-land": "src/dsh-sessions-land.mjs",
+    "dsh-context-check": "src/context-check.mjs",
+    "dsh-session-axis-set": "src/session-axis-set.mjs",
+    "dsh-archive-inactive": "src/archive-inactive-sessions.mjs"
   },
   "files": [
     "src",
@@ -36,7 +47,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "check": "node --check src/relay-facts.mjs && node --check src/session-tail-for-llm.mjs && node --check src/dsh-sessions-land.mjs && node --check src/lib/dsh-home.mjs && node --check src/lib/session-file-name.mjs && node --check src/lib/sessions-land-skip.mjs"
+    "check": "node --check src/relay-facts.mjs && node --check src/session-tail-for-llm.mjs && node --check src/dsh-sessions-land.mjs && node --check src/context-check.mjs && node --check src/session-axis-set.mjs && node --check src/archive-inactive-sessions.mjs && node --check src/lib/dsh-home.mjs && node --check src/lib/session-file-name.mjs && node --check src/lib/sessions-land-skip.mjs && node --check src/lib/dsh-rpc-client.mjs && node --check src/lib/archive-meta-store.mjs && node --check src/lib/projcache-read.mjs && node --check src/lib/zstd-frames.mjs"
   },
   "license": "AGPL-3.0-only"
 }

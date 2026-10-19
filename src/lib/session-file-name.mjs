@@ -1,15 +1,15 @@
-// DSH / tools/lib/session-file-name.mjs —— 会话日志文件名判据 · **单一真源**（零依赖）
+// session-file-name.mjs —— 会话日志文件名判据 · **单一真源**（零依赖）
 //
-// 背景（2026-09-24 · 卡「三机同步步A-V3代际适配」）：
-//   主包 0.1.5 起把会话日志改名 `session.jsonl.zstd` → `session.v3.jsonl.zstd`。
-//   凡是「按精确文件名比较」的**读取侧**判据都会整条失明（实测 pitfall-scan 的
-//   discoverSessionFiles() 活跃树覆盖 0 / 212），而归档里仍有 1040 个旧名文件、
-//   活跃树 212 个全是 v3 名 ⇒ 读取侧必须**认全世代**。
+// 背景：
+//   主包 0.1.5 起把会话日志改名 `session.jsonl.zstd` → `session.v3.jsonl.zstd`；
+//   主包 0.2.x 起**再换代** `session.v3.jsonl.zstd` → `session.v4.jsonl.zstd`（**现行世代**）。
+//   凡是「按精确文件名比较」的**读取侧**判据都会整条失明（实测一次扫描活跃树覆盖 0 / 212），
+//   而归档里仍有大量旧名文件、两代并存目录也不罕见。
 //
-// 三条口径（写死，别自由发挥）：
+// 三条铁律：
 //   ① 读取侧一律用 isSessionFileName() / sessionFileGeneration()（前缀 + 代际），**禁精确字符串比较**；
 //   ② 需要"代际"时从文件名提取（旧名 = 0，`session.vN....` = N），**禁硬编码**；
-//   ③ 写入侧（真要写文件名时）用 SESSION_FILE_NAME_CURRENT（当前世代 = v3）。
+//   ③ 写入侧（真要写文件名时）用 SESSION_FILE_NAME_CURRENT（当前世代 = v4）。
 //
 // ⚠️ 非 Node 侧（如 PowerShell 脚本）无法 import 本模块：那边**必须写等价判据并保持同步**
 //   （判据 =「前缀 + 代际」+ current 名常量）。**改一处必须同步另一处。**
@@ -22,30 +22,34 @@
 //     **fail-closed 校验副本与真源 sha 一致**，并在改真源时同批重跑那个同步步骤。
 //
 //   ⚠️ 已知风险登记（先登记、本版不修）：「两代并存」目录里新世代文件可能只是**补写壳**
-//      （实测：v3 仅 2 事件 / 244 B，旧名才是完整对话 2621 事件 / 2.7 MB）=> **需要读内容的
+//      （实测：新世代仅 2 事件 / 244 B，旧名才是完整对话 2621 事件 / 2.7 MB）=> **需要读内容的
 //      消费者必须走候选链**（rankSessionFilesInDir / collectSessionFilesByDir 的 files），
-//      只做扫描 / 移动的取 current 即可。若将来把"归档并存目录"纳入扫描，先接候选链再开。
+//      只做扫描 / 移动的取 current 即可。
 import fs from 'node:fs';
 import path from 'node:path';
 
 /** 旧世代文件名（≤ 0.1.1；归档树里仍有大量此名）。 */
 export const SESSION_FILE_NAME_LEGACY = 'session.jsonl.zstd';
 
-/** 当前世代文件名（0.1.5 起）。 */
+/** v3 世代文件名（0.1.5 起；**已被 0.2.x 换代**，仍须认得）。 */
 export const SESSION_FILE_NAME_V3 = 'session.v3.jsonl.zstd';
 
-/** 写入侧应使用的当前世代文件名。 */
-export const SESSION_FILE_NAME_CURRENT = SESSION_FILE_NAME_V3;
+/** 当前世代文件名（0.2.x 起）。 */
+export const SESSION_FILE_NAME_V4 = 'session.v4.jsonl.zstd';
 
-/** 认得的两个世代名（读取侧清单；顺序 = 旧 → 新）。 */
-export const SESSION_FILE_NAMES = [SESSION_FILE_NAME_LEGACY, SESSION_FILE_NAME_V3];
+/** 写入侧应使用的当前世代文件名。 */
+export const SESSION_FILE_NAME_CURRENT = SESSION_FILE_NAME_V4;
+
+/** 认得的三个世代名（读取侧清单；顺序 = 旧 → 新）。 */
+export const SESSION_FILE_NAMES = [SESSION_FILE_NAME_LEGACY, SESSION_FILE_NAME_V3, SESSION_FILE_NAME_V4];
 
 /** 宽匹配模式（shell / robocopy / Get-ChildItem -Filter 用；**读取侧**）。 */
 export const SESSION_FILE_GLOB = 'session*.jsonl.zstd';
 
 /**
  * 读取侧判据（前缀 + 代际）。命中的形态：
- *   `session.jsonl.zstd`（旧世代）· `session.v3.jsonl.zstd`（当前世代）· `session.v4.jsonl.zstd`（未来世代）
+ *   `session.jsonl.zstd`（旧世代）· `session.v3.jsonl.zstd`（0.1.5 世代）· `session.v4.jsonl.zstd`（当前世代）
+ *   · 更高的 `session.vN.jsonl.zstd`（未来世代）—— **本判据认任意 vN，换代时无需改**。
  * 不命中：`session.jsonl`（明文形态，另有判据）· `session.jsonl.zstd.bak` · 其它任意文件。
  */
 export const SESSION_FILE_RE = /^session(?:\.v(\d+))?\.jsonl\.zstd$/;
@@ -92,8 +96,8 @@ export function listSessionFilesInDir(dir, opts = {}) {
  * 同一会话目录内的候选文件，按优先级排序（第一个 = 「当前那份」）：
  *   mtime 最新优先 → 平局取代际大者 → 再平局取名字典序小者（确定性）。
  *
- * ⚠️ **「当前那份」≠「内容最全的那份」**（2026-09-24 实测，卡「修·V3判据④」）：
- *    换代后新世代文件可能只是"补写壳"——归档树 28 个两代并存目录里，`session.v3.jsonl.zstd`
+ * ⚠️ **「当前那份」≠「内容最全的那份」**（实测）：
+ *    换代后新世代文件可能只是"补写壳"——`session.v3.jsonl.zstd`
  *    只有 2 个事件（`session` 头 + `session/end-seed`、有效内容 244 B），而旧名文件才是完整对话
  *    （2621 个事件 / 2.7 MB 解压文本）。**需要读内容的消费者必须走完候选链**（见下），
  *    只做"扫描/移动"的消费者取第一个即可。

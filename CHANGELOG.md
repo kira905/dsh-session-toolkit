@@ -6,6 +6,51 @@
 
 ---
 
+## v0.1.1 — 2026-10-19
+
+补发批：把三个**生命周期入口**及其依赖闭包并入本仓（v0.1.0 只发了六件）。
+
+### 新增（本版 +7 件 · 共 13 件）
+
+| 件 | 作用 |
+|---|---|
+| `src/context-check.mjs` | 上下文用量自查（宿主 RPC `session.list` 投影）；超阈值 `rc=7` |
+| `src/session-axis-set.mjs` | 接力轴标注（`【续】` / `【已交接】`，调 `session.rename`）；含 `--self-test` |
+| `src/archive-inactive-sessions.mjs` | 非活跃会话归档：整目录搬移 + 逐文件 sha256 校验 + manifest；**从不删除** |
+| `src/lib/dsh-rpc-client.mjs` | 宿主 HTTP RPC 客户端（可发布件）：端点表 + 新旧双栈回落 + wire 自适应 |
+| `src/lib/archive-meta-store.mjs` | 归档元数据库（加速缓存）：原子写 + 跨进程锁 + 损坏 fail-closed + `.bak` 轮转 |
+| `src/lib/projcache-read.mjs` | `session_projcache` 读写口径统一入口（分片优先、旧单文件兜底） |
+| `src/lib/zstd-frames.mjs` | zstd 多帧拆帧（严格帧结构解析；撕裂帧返回 `tornStart`，不猜） |
+
+**补发件的来源**：这三个入口原先静态依赖宿主的「凭据通道」件，不能直接公开。那次拆分
+（凭据通道拆分）把「RPC 客户端件」与「宿主凭据解析件」分开：**前者可发布、后者永不发布**。
+入口改依赖前者后，三个入口的依赖闭包不再含任何凭据路径/家目录耦合 ⇒ 本版得以补发。
+
+### 相对私有原版的改动（本版）
+
+- **零盘符绝对路径**：`archive-inactive-sessions.mjs` 的同步副本仓默认值（原为一个本机绝对路径）
+  改为 **`--synced-repo` 必填**；缺参 ⇒ **fail-closed（一个都不归档，rc=3）**，不猜任何目录。
+- **去私有术语**：`仓2 / 过河 / TUF` 等私有叫法改为通用的「副本仓 / 已同步」；跳过原因文案同步改。
+- **去内部卡号与私有路径**：注释里的内部卡号、里程碑号、私有工具名、私有目录示例、
+  内部报告指针一律删除或改为通用描述（含 `dsh-host-rpc.mjs` 薄壳、内部管家组件家族、
+  `_tmp` 取证脚本等）。
+- **共享件路径改相对**：注释里的内部库路径改为相对路径（`./lib/*.mjs`）。
+- **删掉未使用的 `node:os` import**（`archive-meta-store.mjs`；本件不读家目录）。
+- **旧私有环境变量名**：`BUTLER_DSH_HOME` 仍是**一次性兼容读**（主名 `DSH_HOME` 优先），
+  与 v0.1.0 口径一致。
+- **`session-file-name.mjs`**：写入侧当前世代常量推到 **v4**（`session.v4.jsonl.zstd`），
+  读取侧判据认任意 `vN`（与私有原版同源；本仓上一版是 v3）。
+
+> **不改的**：协议、数据结构、退出码语义、判据口径、阈值、`LICENSE`（AGPL-3.0 + 商业授权，字节不改）。
+
+### 已知限度（本版）
+
+- 三个补发入口只做了**隔离夹具冒烟**（17/17 通过），**未连宿主实跑**；宿主 RPC 面在公开环境
+  无内置凭据 —— 需 `DSH_RPC_COOKIE_SECRET` 或显式 `cookieSecret`，否则**明确报错**（不静默）。
+- `archive-inactive-sessions.mjs --synced-only` 必须显式给 `--synced-repo`。
+
+---
+
 ## v0.1.0 — 2026-10-16
 
 首个公开发行版。六件会话生命周期工具从私有 DSH 工作树中抽出、通用化后独立成仓。

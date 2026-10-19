@@ -2,11 +2,12 @@
 
 [English](README.en.md) · 中文（默认）
 
-把「**长会话怎么安全地交给下一个会话 / 下一台机器**」这条链上**只读、可复跑**的六件工具抽出来，
+把「**长会话怎么安全地交给下一个会话 / 下一台机器**」这条链上**只读、可复跑**的工具抽出来，
 通用化后独立成仓。
 
 > **这不是插件**，也不是一个应用：它是一组 **Node.js 脚本**（零第三方依赖）——
-> 三个核心件 + 三个共享 lib，全部按 **DSH 的目录约定**读写数据，可单独跑、可被别的脚本 import。
+> **六个顶层件（五个带 CLI）+ 七个共享 lib**（共 13 件），全部按 **DSH 的目录约定**读写数据，
+> 可单独跑、可被别的脚本 import。
 
 ---
 
@@ -25,7 +26,10 @@
 
 ---
 
-## 一、六件是什么
+## 一、十三件是什么
+
+（v0.1.1 起补发：`context-check` / `session-axis-set` / `archive-inactive-sessions` 三个入口
+及其依赖的四个共享 lib。补发件的来源见 [CHANGELOG](./CHANGELOG.md) 的 `v0.1.1` 一节。）
 
 | 件 | 角色 | 读 / 写 |
 |---|---|---|
@@ -35,6 +39,17 @@
 | `src/lib/dsh-home.mjs` | **实例 home / 工作区根 / 报告目录的唯一解析点**（显式参数 + 环境变量可注入） | 只读环境 |
 | `src/lib/session-file-name.mjs` | 会话日志**文件名判据的真源**（认全世代：旧名 + `session.vN` 名；读写两侧口径不同，写死） | 无 I/O |
 | `src/lib/sessions-land-skip.mjs` | 「跳过落地」判据——**纯函数**（给定输入必然同结果）+ 状态文件原子读写 | 读/写一个状态文件 |
+| `src/context-check.mjs` | **上下文用量自查**：通过宿主 RPC 读会话投影（`contextPressure`），报当前 / 全部会话的占用与阈值余量；接近阈值就是"该移交了"的信号 | **纯只读**（只发 RPC）；带 CLI |
+| `src/session-axis-set.mjs` | **接力轴标注**：给会话标题打 / 换 `【续】`、`【已交接】`（调 `session.rename`，与接力链同一路径）；含 `--self-test`（纯函数 + 假服务，零生产写入） | 只调 RPC，不碰文件；带 CLI |
+| `src/archive-inactive-sessions.mjs` | **非活跃会话归档**：把超时、无未闭合 turn 的会话目录**整目录搬进** `<DSH_HOME>/_archived-sessions/`（**从不删除**，带 manifest）；逐世代校验字节一致后才删源；可选 `--synced-only` 只归档"已同步到副本仓"的 | 移动目录 + 写 manifest + 写元数据库；带 CLI |
+| `src/lib/dsh-rpc-client.mjs` | **宿主 HTTP RPC 客户端**（可发布件）：端点表 + 新旧双栈回落 + wire 自适应；cookie 来源 = 显式参数 / 环境变量 / 可选宿主凭据件（公开环境不存在 ⇒ 无凭据） | 只发 HTTP，不读文件、不碰家目录 |
+| `src/lib/archive-meta-store.mjs` | **归档元数据库**（加速缓存，非权威源）：原子写 + 跨进程锁 + 损坏 fail-closed + `.bak` 轮转；三态语义（真实轮数 / 零轮 / 未知） | 读写一个 JSON 库（`<归档根>/archive-meta.json`） |
+| `src/lib/projcache-read.mjs` | **session_projcache 读写口径统一入口**：分片优先、旧单文件兜底；键两种命名形态都认；读侧绝不创建目录 | 只读为主（另有同址原子写入口） |
+| `src/lib/zstd-frames.mjs` | **zstd 多帧拆帧**（严格帧结构解析）：取完整帧边界，遇撕裂帧返回 `tornStart` 而不猜 | 无 I/O（纯函数） |
+
+> 补发的四个 lib（`dsh-rpc-client` + 归档三件）是三个入口的**依赖闭包**，单独 import 也可用；
+> `dsh-rpc-client` 与宿主专有的凭据解析件是**分开**的 —— 公开件不写死任何凭据路径，
+> 宿主上"有就用、没有就当无凭据"。
 
 **为什么"落地动作"不在仓里**：那个动作是"把 git 仓里的会话目录合并进本机目录"，
 必须贴近你**自己的**同步脚本（加密仓解锁、合并策略、路径习惯都与你有关）。
@@ -49,23 +64,26 @@
 | 运行时 | **Node.js ≥ 20**（`engines.node`） |
 | 依赖 | **零第三方依赖**：只用 `node:fs` / `node:path` / `node:os` / `node:zlib` / `node:child_process` / `node:url` |
 | 宿主 peer 声明 | **不声明**（见下"为什么不设 peer"） |
-| 宿主实测版本 | **`0.2.0-rc.2`** —— 本版发布时在这一个宿主版本上做过实跑冒烟；其它版本**未实测、不作承诺** |
+| 宿主实测版本 | **`0.2.0-rc.2`** —— v0.1.0 的六件在这一个宿主版本上做过实跑冒烟；v0.1.1 补发的入口只做**隔离夹具冒烟**（未连宿主实跑），其它版本**未实测、不作承诺** |
 
 **为什么不设宿主 peer 依赖**：peer 声明表达的是"我的代码要被这个版本的宿主**加载**"，
-适用于插件（插件由宿主装配、import 宿主的包）。本仓六件都**不通过宿主装配链加载**、
+适用于插件（插件由宿主装配、import 宿主的包）。本仓所有件都**不通过宿主装配链加载**、
 也**不 import 宿主的任何包**——它们是独立进程，只按**目录约定与文件格式**读写数据。
 真正的"兼容区间"因此落在**目录约定**上（见下表），落成 peer 反而会传递一个错误的信号：
 "版本对不上就不能用"，而实际判据是"目录约定与文件格式对不对得上"。
 
-### 这六件依赖的接口面（= 实际的兼容边界）
+### 这些件依赖的接口面（= 实际的兼容边界）
 
 | 用途 | 约定 |
 |---|---|
 | 实例家目录 | 环境变量 `DSH_HOME`；未设时回落 `~/.dsh`。旧私有名 `BUTLER_DSH_HOME` 作为**一次性兼容读**保留 |
 | 活跃会话 | `<DSH_HOME>/sessions/…`，日志文件名 `session.vN.jsonl.zstd`（**认全世代**，不按精确文件名比较） |
 | 归档会话 | `<DSH_HOME>/_archived-sessions/…` |
+| 归档元数据库 | `<归档根>/archive-meta.json`（**加速缓存**；`.bak` 落 `<DSH_HOME>/backups/archive-meta/`，可用 `ARCHIVE_META_BACKUP_DIR` 改道） |
+| 投影缓存 | `<DSH_HOME>/storages/session_projcache/sessions/<key>.json`（分片）∪ `<DSH_HOME>/storages/session_projcache.json`（旧单文件） |
 | 看板账本 | `<DSH_HOME>/task-board/ledger-v2.json`（形状：`tasks[]` 优先、`cards[]` 兼容） |
 | 工作区树 | 环境变量 `DSH_WORKSPACE`（或由被重定向的 home 推导）；用到 `<工作区>/docs` 与 `<工作区>/docs/变更流水` |
+| 宿主 RPC | `POST http://<host>:<port>/api/<ns>/<method>`（0.1.5+ 路径段形态）；cookie 鉴权；旧点号形态自动回落 |
 
 ---
 
@@ -175,6 +193,66 @@ shouldSkipLanding({ state, repoHead, localCount, now, maxAgeMs, enabled })
 
 判据**fail-safe**：任何一项判不出来（状态缺失/损坏/时钟倒退/本机数未知）⇒ **不跳过**。
 
+### 4.7 `context-check.mjs` —— 上下文用量自查
+
+```bash
+node src/context-check.mjs                     # 查当前会话（读 DSH_SESSION_ID）
+node src/context-check.mjs --threshold 300000  # 自定义阈值（默认 300000）
+node src/context-check.mjs --json              # 机器可读
+node src/context-check.mjs --session <id>      # 查指定会话
+node src/context-check.mjs --all               # 列出全部会话（按用量降序）
+```
+
+- 数据源 = 宿主 `session.list` 投影里的 `contextPressure`（与 GUI 输入框旁的圆环同源）。
+- 退出码：`0` 正常未超阈值 · `7` **已超阈值**（该移交了）· `2` 查不到会话 / 服务不可用。
+- 端点由 `DSH_WEB_URL` 指定（默认 `http://127.0.0.1:3080`）。
+
+### 4.8 `session-axis-set.mjs` —— 接力轴标注
+
+```bash
+node src/session-axis-set.mjs --session <sid> --axis 续 --base "<主线名>"          # 默认 dry-run
+node src/session-axis-set.mjs --session <sid> --axis 续 --base "<主线名>" --apply  # 真写
+node src/session-axis-set.mjs --self-test                                          # 自检（假服务，零生产写入）
+```
+
+- 只调 `session.rename`（与接力链同一条路）；**不碰文件、不写台账、不建会话**。
+- `--base` 省略时从当前标题剥掉已知轴前缀取基名；剥不出 ⇒ **拒绝写入**。
+- 退出码：`0` 成功 / 幂等跳过 · `1` 调用失败 · `2` 用法错误 · `3` 会话不在列表里（拒绝写入）。
+
+### 4.9 `archive-inactive-sessions.mjs` —— 非活跃会话归档
+
+```bash
+node src/archive-inactive-sessions.mjs --dry-run                # 预览，不移动
+node src/archive-inactive-sessions.mjs                          # 真搬（>48h 未活跃 + 尾部无未闭合 turn）
+node src/archive-inactive-sessions.mjs --min-size-mb 1          # 只归档 ≥1MB 的
+node src/archive-inactive-sessions.mjs --include-empty          # 连空壳会话一起归档
+node src/archive-inactive-sessions.mjs --sess-root=<dir>        # 换扫描根（测试用）
+node src/archive-inactive-sessions.mjs --synced-only --synced-repo=<dir>  # 只归档已同步到副本仓的
+```
+
+- **从不删除**：整会话目录（含全部世代文件）复制、**逐文件 sha256 校验**、然后才删源；写 `manifest.json` 供恢复。
+- 默认跳过「空壳」会话（整份日志无任何 user/assistant 消息）。
+- `--synced-only`：**必须**给 `--synced-repo`（本仓不内置任何机器特定默认路径；缺参 ⇒ **fail-closed，一个都不归档**，rc=3）。
+- 退出码：`0` 正常 / dry-run · `3` fail-closed（取不到 running 会话列表或缺 `--synced-repo`）。
+
+### 4.10 `lib/dsh-rpc-client.mjs` —— 宿主 RPC 客户端（库）
+
+```js
+import { hostRpc, hostRpcValue, hostCookie, detectStack } from './src/lib/dsh-rpc-client.mjs'
+
+const { status, body } = await hostRpc('http://127.0.0.1:3080', 'session.list', {})
+```
+
+- 兼容 0.1.4（点号端点）与 0.1.5+（路径段 + `args` 包装）双栈；wire 参数名自适应学习。
+- cookie 三个来源：① `hostCookie(base, { cookieSecret })` 显式 ② `DSH_RPC_COOKIE_SECRET` ③ **可选**宿主凭据件（公开环境不存在 ⇒ 无凭据）。**本件不读文件、不碰家目录。**
+- 导出面：`hostRpc` / `hostRpcJson` / `hostRpcValue` / `hostCookie` / `clearCookieCache` / `detectStack` / `ENDPOINT_TABLE` / `REMOVED_ENDPOINTS`。
+
+### 4.11–4.13 归档三个共享 lib
+
+- `lib/archive-meta-store.mjs`：`upsertMany` / `setState` / `readStore` / `recoverFromBackup` 等；**库是加速缓存、不是权威源**；损坏 ⇒ 写侧 fail-closed；`.bak` 保留 3 份。
+- `lib/projcache-read.mjs`：`projcacheSessionsTable` / `lookupProjcacheRecord`（分片优先、旧单文件兜底）；**上游换代时要更新 `PROJCACHE_SHARD_KNOWN_VERSIONS`**。
+- `lib/zstd-frames.mjs`：`scanZstdFrames(buffer)` → `{ frames, tornStart }`；撕裂帧一律丢弃，**不猜长度**。
+
 ---
 
 ## 五、环境变量一览
@@ -188,6 +266,11 @@ shouldSkipLanding({ state, repoHead, localCount, now, maxAgeMs, enabled })
 | `DSH_SESSIONS_LAND_PS` | 落地脚本路径（落地器） | 无，必须给 |
 | `DSH_SESSIONS_DIR` / `DSH_ARCHIVE_DIR` | 活跃 / 归档会话目录 | `<DSH_HOME>/sessions`、`<DSH_HOME>/_archived-sessions` |
 | `DSH_SESSIONS_LAND_STATE` | 跳过判据的状态文件路径 | `<DSH_HOME>/sessions-land.json` |
+| `DSH_WEB_URL` | 宿主 web 端点（`context-check`） | `http://127.0.0.1:3080` |
+| `DSH_BASE_URL` | 宿主 web 端点（`session-axis-set`） | `http://localhost:3080` |
+| `DSH_HOST_API_URL` | 宿主 web 端点（`archive-inactive` 取 running 会话） | `http://localhost:3080` |
+| `DSH_RPC_COOKIE_SECRET` | 宿主 RPC 的 cookie 签名密钥（base64 · 32 字节）；不给则尝试宿主凭据件，都没有 ⇒ 无凭据 | — |
+| `ARCHIVE_META_BACKUP_DIR` | 归档元数据库 `.bak` 的落点（测试 / 隔离用） | `<DSH_HOME>/backups/archive-meta` |
 
 Windows（cmd）示例：`set DSH_HOME=%USERPROFILE%\.dsh` · `set DSH_WORKSPACE=<工作区根>`；
 POSIX（bash）示例：`export DSH_HOME=~/.dsh` · `export DSH_WORKSPACE=~/dsh`。
@@ -215,10 +298,17 @@ dsh-session-toolkit/
 │  ├─ relay-facts.mjs            交接事实采集器（库）
 │  ├─ session-tail-for-llm.mjs   会话取尾（库 + CLI）
 │  ├─ dsh-sessions-land.mjs      会话落地编排（库 + CLI）
+│  ├─ context-check.mjs          上下文用量自查（CLI）
+│  ├─ session-axis-set.mjs       接力轴标注（CLI）
+│  ├─ archive-inactive-sessions.mjs  非活跃会话归档（CLI）
 │  └─ lib/
 │     ├─ dsh-home.mjs            home / 工作区解析唯一权威
 │     ├─ session-file-name.mjs   会话日志文件名判据真源
-│     └─ sessions-land-skip.mjs  跳过落地判据 + 状态文件
+│     ├─ sessions-land-skip.mjs  跳过落地判据 + 状态文件
+│     ├─ dsh-rpc-client.mjs      宿主 RPC 客户端（可发布件）
+│     ├─ archive-meta-store.mjs  归档元数据库（缓存 + 锁 + 原子写）
+│     ├─ projcache-read.mjs      projcache 读写口径统一入口
+│     └─ zstd-frames.mjs         zstd 多帧拆帧（严格结构解析）
 ├─ CHANGELOG.md
 ├─ LICENSE            AGPL-3.0 全文 + 商业授权段
 ├─ README.md / README.en.md
@@ -233,3 +323,10 @@ dsh-session-toolkit/
 - 这三件工具面向的是**已有的 DSH 目录结构**；它们不是通用意义上的"会话文件处理库"。
 - 解帧只覆盖 DSH 会话日志的**多帧 zstd** 形态；换一种容器格式需要改 `session-tail-for-llm.mjs`。
 - 本版在**一个宿主版本**（见 §二）上实跑冒烟；跨版本矩阵未做。
+- `archive-inactive-sessions.mjs --synced-only` **必须**显式给 `--synced-repo`：本仓不内置任何机器特定路径，
+  缺参即 fail-closed（一个都不归档）。
+- `lib/dsh-rpc-client.mjs` 在公开环境**没有内置凭据**：需要宿主 RPC 的功能（`context-check` /
+  `session-axis-set` / `--synced-only` 的 running 会话查询）要靠显式 `cookieSecret` 或
+  `DSH_RPC_COOKIE_SECRET` 注入；没有凭据时它们**明确报错**，不会静默返回空结果。
+- `lib/archive-meta-store.mjs` 是**加速缓存**，不是权威源；库损坏时写侧 fail-closed（不覆盖），
+  可用 `recoverFromBackup()` 从 `.bak` 恢复。

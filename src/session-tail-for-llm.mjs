@@ -12,7 +12,7 @@
 //   · `tools\dsh-session-tail-dump.mjs` = 排障工具（人看，尾部 N 条事件，字段截 200 字符）
 //     ⇒ **本文件只复用它的"多帧 zstd 解帧算法"**（ZSTD_MAGIC 切帧 + `zstdDecompressSync`），
 //       不 import 它、不改它（它是 CLI 脚本、没有可导出的解帧函数）。
-//   · `tools\board-ops\session-tail.mjs` = 人的排障视图（--grep / --raw）
+//   · `board-ops/session-tail.mjs` = 人的排障视图（--grep / --raw）
 //     ⇒ **不许改它的 200 字符截断行为**，本文件独立实现"给模型看"的渲染。
 //
 // ── 本文件的硬性质 ────────────────────────────────────────────────────────
