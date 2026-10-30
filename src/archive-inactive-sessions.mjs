@@ -31,8 +31,28 @@ import os from 'node:os';
 // 环境边界：DSH 数据根一律走统一解析（DSH_HOME 优先；旧私有名 BUTLER_DSH_HOME 仅作
 // 兼容读；两者都没设 ⇒ ~/.dsh）。
 import { resolveDshHome } from './lib/dsh-home.mjs';
+import { cliGuard } from './cli-args.mjs';
 
-const ARGS = process.argv.slice(2);
+const SPEC = {
+  cmd: 'dsh-archive-inactive',
+  summary: '把「超过 48 小时没动静且尾部没有未闭合回合」的会话目录搬出 sessions，挪进归档目录（DSH 不再扫它们 ⇒ 启动更快）。只搬不删，可恢复。',
+  usage: 'dsh-archive-inactive [--dry-run] [--max-count=N] [--min-size-mb=N] [--include-empty]',
+  flags: [
+    { name: '--dry-run', desc: '只预览会搬哪些，一个都不搬' },
+    { name: '--max-count', arg: 'N', desc: '本次最多搬几个（必须写成 --max-count=N）' },
+    { name: '--min-size-mb', arg: 'N', desc: '只搬大于等于这个体积（MB）的会话' },
+    { name: '--sess-root', arg: '目录', desc: '会话根目录（必须写成 --sess-root=<目录>）' },
+    { name: '--include-empty', desc: '连「空壳会话」也搬（旧行为）' },
+    { name: '--synced-only', desc: '只搬「异地副本仓里已有字节相同副本」的会话' },
+    { name: '--synced-repo', arg: '目录', desc: '同步副本仓根（--synced-only 时必填，必须写成 --synced-repo=<目录>）' },
+  ],
+  env: [{ name: 'DSH_HOST_API_URL', desc: '宿主地址，默认 http://localhost:3080（用来排除正在跑的会话）' }],
+  writes: '默认真搬：把会话目录两段式（复制→校验字节→删源）移到归档目录并写 manifest。加 --dry-run 则只预览。不删任何东西。',
+  dryRun: '加 --dry-run 只打印清单，不搬不删。',
+  exits: '0 成功（含「没有可搬的」） · 1 运行失败 · 2 参数错误',
+  examples: ['dsh-archive-inactive --dry-run', 'dsh-archive-inactive --max-count=5 --min-size-mb=1'],
+};
+const ARGS = cliGuard(SPEC);
 const DRY = ARGS.includes('--dry-run');
 const INCLUDE_EMPTY = ARGS.includes('--include-empty');
 const SESS_ROOT_ARG = ARGS.find((a) => a.startsWith('--sess-root='));

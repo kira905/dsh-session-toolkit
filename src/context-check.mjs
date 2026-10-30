@@ -19,8 +19,27 @@ import process from 'node:process';
 // 本件依赖**可发布**的 RPC 客户端件：宿主凭据由该件经「可选依赖探测（宿主专有凭据件，
 // 不发布）+ 显式 / env 注入」取用；本件不静态 import 任何凭据通道件。
 import { hostRpc, hostRpcJson } from './lib/dsh-rpc-client.mjs';
+import { cliGuard } from './cli-args.mjs';
 
-const args = process.argv.slice(2);
+const SPEC = {
+  cmd: 'dsh-context-check',
+  summary: '看会话上下文用了多少（与输入框旁那个圆环同源），接近阈值就该把自己接手的工作移交到新会话。',
+  usage: 'dsh-context-check [--session <id>] [--threshold 300000] [--json] [--all]',
+  flags: [
+    { name: '--session', arg: 'id', desc: '查哪个会话，默认读环境变量里的当前会话' },
+    { name: '--threshold', arg: 'N', desc: '阈值（token），默认 300000' },
+    { name: '--json', desc: '机器可读输出' },
+    { name: '--all', desc: '列出全部会话的用量，不只当前这一个' },
+  ],
+  env: [
+    { name: 'DSH_SESSION_ID', desc: '当前会话 id（不给 --session 时用）' },
+    { name: 'DSH_WEB_URL', desc: '宿主地址，默认 http://127.0.0.1:3080' },
+  ],
+  writes: '什么都不写：只读会话表投影，结果打到 stdout。',
+  exits: '0 成功 · 2 查询失败（宿主没在跑 / 参数错） · 7 已达或超过阈值（调用方可据此移交）',
+  examples: ['dsh-context-check', 'dsh-context-check --json --all'],
+};
+const args = cliGuard(SPEC);
 const has = (f) => args.includes(f);
 const val = (f, d) => {
   const i = args.indexOf(f);

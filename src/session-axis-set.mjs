@@ -16,12 +16,30 @@ import http from 'node:http';
 // 本件依赖**可发布**的 RPC 客户端件：宿主凭据由该件经「可选依赖探测（宿主专有凭据件，
 // 不发布）+ 显式 / env 注入」取用；本件不静态 import 任何凭据通道件。
 import { hostRpc } from './lib/dsh-rpc-client.mjs';
+import { cliGuard } from './cli-args.mjs';
 
 const BASE = process.env.DSH_BASE_URL || 'http://localhost:3080';
 const AXES = { '续': '【续】', '已交接': '【已交接】' };
 const KNOWN_AXES = ['【运行】', '【完成】', '【待续】', '【待命】', '【已中断】', '【续】', '【已交接】'];
 
-const argv = process.argv.slice(2);
+const SPEC = {
+  cmd: 'dsh-session-axis-set',
+  summary: '给会话标题打 / 换「接力轴」（【续】 / 【已交接】）。只调 session.rename —— 不碰文件、不写台账、不建会话。',
+  usage: 'dsh-session-axis-set --session <sid> --axis 续|已交接 [--base "<主线名>"] [--apply]',
+  flags: [
+    { name: '--session', arg: 'id', desc: '目标会话 id' },
+    { name: '--axis', arg: '轴', desc: '要打的轴：续 / 已交接' },
+    { name: '--base', arg: '主线名', desc: '标题基名（省略时从当前标题剥掉已知轴前缀后取）' },
+    { name: '--apply', desc: '真改名（不带就是干跑）' },
+    { name: '--self-test', desc: '自检（纯函数 + 假服务，零生产写入）' },
+  ],
+  env: [{ name: 'DSH_BASE_URL', desc: '宿主地址，默认 http://localhost:3080' }],
+  writes: '默认干跑，只报将写什么。加 --apply 会真的改会话标题（一次 session.rename）。--self-test 不碰生产。',
+  dryRun: '默认就是干跑；加 --apply 才写。',
+  exits: '0 成功 · 1 调用失败 · 2 参数错误 · 3 剥不出基名 ⇒ 拒绝写入',
+  examples: ['dsh-session-axis-set --session <sid> --axis 续 --base "主线名" --apply'],
+};
+const argv = cliGuard(SPEC);
 const opt = (name) => { const i = argv.indexOf(`--${name}`); return i >= 0 ? (argv[i + 1] ?? null) : null; };
 const has = (name) => argv.includes(`--${name}`);
 
