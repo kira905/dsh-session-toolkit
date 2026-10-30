@@ -2,6 +2,34 @@
 
 [English](README.en.md) · 中文（默认）
 
+> **本仓是命令行工具，不挂宿主界面，不需要 `dsh.bundle`、不需要写 `cordis.patch.yml`。** 装它 = `npm i -g @kira905/dsh-session-toolkit`（或 `npx -p @kira905/dsh-session-toolkit dsh-context-check`）。装进 profile 也对，但那条 `declares no dsh.bundle` 警告是**正常现象**，不是故障。
+
+## 装完自检（三条只读验法）
+
+`<profile>` 换成你实际用的 profile（默认 `web`），`<数据根>` 换成你的 DSH 数据根（默认 `~/.dsh`）。
+
+```powershell
+# ① 组合树里有没有它（只读、约 0.6 秒、不启服务）
+dsh --profile <profile> --dump-config | Select-String "dsh-session-toolkit"
+# 期望：bundle 层出现一行 "# == <登记名>"、insert 层出现 "- id: <entry>"（问的都是「它挂上没」）；
+#       本仓包名 @kira905/dsh-session-toolkit —— 带 scope 装的写带 scope 名、老工装 / 手写的可能是裸名，两种都搜一遍
+#       ⚠️ 若该包会 insert 一行，还要数一遍"同一个 id 出现了几次"，必须 == 1
+
+# ② 组合列表里有没有它（只读）
+Get-Content <数据根>/profiles/<profile>/package.json | Select-String "@kira905/dsh-session-toolkit"
+# 期望：dependencies 与 dsh.profile.bundles 两处都有（CLI 类只需要 dependencies；bundles 里也可能写裸名 dsh-session-toolkit）
+
+# ③ 命令在不在 —— 【只查存在，不执行】
+Test-Path <数据根>/profiles/<profile>/node_modules/.bin/dsh-context-check.CMD   # 装进 profile 的
+Test-Path "$env:APPDATA\npm\dsh-context-check.CMD"                           # npm i -g 装的
+# 期望：True。两条路径按你实际用的装法挑一条
+```
+
+> 探针只做存在性检查（只看命令文件在不在，不执行任何命令）。
+> 要不要用 `--help` 验，见本仓当前说明与该命令的参数表。
+
+---
+
 把「**长会话怎么安全地交给下一个会话 / 下一台机器**」这条链上**只读、可复跑**的工具抽出来，
 通用化后独立成仓。
 
