@@ -1,6 +1,6 @@
 {
   "name": "@kira905/dsh-session-toolkit",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Session-lifecycle toolkit for DeepSeek Harness: handoff fact collection, model-facing session tails, cross-machine session landing, context pressure check, session axis marks, and inactive-session archiving. Zero runtime dependencies.",
   "keywords": [
     "dsh",
