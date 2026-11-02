@@ -2,6 +2,31 @@
 
 [English](README.en.md) · 中文（默认）
 
+> ### 这是什么
+> **长会话的交接工具组**：把「聊到一半」的事实采集成一份可交接的档，让下一个会话接着干。
+>
+> ### 它解决什么
+> 上下文是有上限的。会话越长，模型越容易忘掉早期细节，最后要么崩、要么答得越来越飘。这里不做「压缩摘要」，而是**采集事实**：目标、判据、进度、剩余清单、口径来源逐字保留，只更新该更新的两格 —— **宁可长，不许缺靶**。
+>
+> ### 一条命令跑起来
+> ```powershell
+> npm i -g @kira905/dsh-session-toolkit
+> dsh-context-check          # 看当前会话上下文用了多少（与输入框旁那个圆环同源）
+> dsh-session-tail <id>      # 取会话尾部，交给下一个会话读
+> ```
+>
+> ### 先看它长什么样（真实输出）
+> ```text
+> 用法
+>   dsh-context-check [--session <id>] [--threshold 300000] [--json] [--all]
+>
+> 看会话上下文用了多少（与输入框旁那个圆环同源），接近阈值就该把自己接手的工作移交到新会话。
+> ```
+>
+> 装法与三条只读自检见下方「装完自检」。
+
+---
+
 > **本仓是命令行工具，不挂宿主界面，不需要 `dsh.bundle`、不需要写 `cordis.patch.yml`。** 装它 = `npm i -g @kira905/dsh-session-toolkit`（或 `npx -p @kira905/dsh-session-toolkit dsh-context-check`）。装进 profile 也对，但那条 `declares no dsh.bundle` 警告是**正常现象**，不是故障。
 
 ## 装完自检（三条只读验法）

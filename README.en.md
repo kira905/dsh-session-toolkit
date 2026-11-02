@@ -1,5 +1,31 @@
 # dsh-session-toolkit
 
+> ### What this is
+> **A handoff toolkit for long sessions**: collect the facts of a half-finished task into a document another session can pick up.
+>
+> ### What it solves
+> Context is finite. The longer a session runs, the more likely it forgets early details — until it either crashes or starts drifting. This does not "summarise"; it **collects facts**: goal, acceptance criteria, progress, remaining list, where each rule came from — kept verbatim, with only the two cells that should change being updated. **Better long than missing the target.**
+>
+> ### Run it in one command
+> ```powershell
+> npm i -g @kira905/dsh-session-toolkit
+> dsh-context-check          # how much context this session has used (same source as the ring in the GUI)
+> dsh-session-tail <id>      # session tail, ready for the next session to read
+> ```
+>
+> ### Real output
+> ```text
+> Usage
+>   dsh-context-check [--session <id>] [--threshold 300000] [--json] [--all]
+>
+> How much context this session has used (same source as the ring next to the input box);
+> close to the threshold means it is time to hand the work over to a new session.
+> ```
+>
+> Install steps and three read-only self-checks are below.
+
+---
+
 [中文](README.md) · English (this file)
 
 Thirteen read-only, re-runnable tools extracted from the "**how does a long session hand itself over
